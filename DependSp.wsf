@@ -1,0 +1,55 @@
+<?XML version="1.0" encoding="Shift_JIS" ?>
+<package>
+<job id="GetTSQLFunction()">
+<comment>
+SQLServerのストアドプロシージャの依存関係を抜き出す。
+</comment>
+<script language="VBScript" src=".\lib\ADOCtrl.vbs"/>
+<script language="VBScript" src=".\lib\TSQLAnalyze.vbs"/>
+<script language="VBScript">
+<![CDATA[
+	Option Explicit
+	
+	Dim DBCtrl
+	Set DBCtrl = getADOCtrl()
+
+	IF WScript.Arguments.Count <> 4 Then
+		Call WScript.Echo("CScript DependSp.wsf ServerName DBName UserName Pass")
+		WScript.Quit -1
+	End If
+
+	IF Not DBCtrl.ConnectSqlServer(WScript.Arguments.Item(0),WScript.Arguments.Item(1),WScript.Arguments.Item(2),WScript.Arguments.Item(3)) Then
+		WScript.Quit -1
+	End If
+	
+	Dim vRecs	' 列,行
+	If Not DBCtrl.ExcuteSQL("SELECT	specific_name,object_definition(object_id(specific_name)) FROM 	information_schema.routines ORDER BY specific_name",vRecs) Then
+		WScript.Quit -1
+	End If
+	Dim i
+	Dim objAna 
+	Set objAna = getTSQLAnalyzer()
+	Dim objData
+	For i = LBound(vRecs,2) To UBound(vRecs,2)
+		Call WScript.Echo(vRecs(0,i))
+		Call objAna.AnalyzeTSQL(vRecs(1,i))
+		Set objData = objAna.GetObjects()
+		If Not objData Is Nothing Then
+			Dim vRecObj ' 列,行
+			Dim j
+			For j = 0 To objData.Count - 1
+				If objData(j) <> vRecs(0,i) Then
+					If DBCtrl.ExcuteSQL( "SELECT obj.name FROM  sys.objects AS obj WHERE obj.name = '" & objData(j) & "'",vRecObj ) Then
+						Call WScript.Echo( vbTab &  objData(j))
+					End If
+				End If
+			Next
+		End If
+	Next
+	Call DBCtrl.Close()
+	Set DBCtrl = Nothing
+
+]]>
+</script>
+</job>
+</package>

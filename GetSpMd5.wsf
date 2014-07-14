@@ -1,0 +1,42 @@
+<?XML version="1.0" encoding="Shift_JIS" ?>
+<package>
+<job id="GetTSQLFunctionMD5()">
+<comment>
+SQLServerよりストアドプロシージャを抜き出してMD5の値を取得する
+CScript GetTSQLFunctionMD5.wsf ServerName DBName UserName Pass
+</comment>
+<script language="VBScript" src=".\lib\ADOCtrl.vbs"/>
+<script language="VBScript" src=".\lib\MD5Mdl.vbs"/>
+<script language="VBScript">
+<![CDATA[
+	Option Explicit
+	IF WScript.Arguments.Count <> 4 Then
+		Call WScript.Echo("CScript GetSpMD5.wsf ServerName DBName UserName Pass")
+		WScript.Quit -1
+	End If
+
+	Dim DBCtrl
+	Set DBCtrl = getADOCtrl()
+	
+	IF Not DBCtrl.ConnectSqlServer(WScript.Arguments.Item(0),WScript.Arguments.Item(1),WScript.Arguments.Item(2),WScript.Arguments.Item(3)) Then
+		WScript.Quit -1
+	End If
+	
+	Dim vRecs	' 列,行
+	If Not DBCtrl.ExcuteSQL("SELECT	specific_name,object_definition(object_id(specific_name)) FROM 	information_schema.routines ORDER BY specific_name",vRecs) Then
+		WScript.Quit -1
+	End If
+
+
+	Dim i
+	Dim objData
+	For i = LBound(vRecs,2) To UBound(vRecs,2)
+		Call WScript.Echo(vRecs(0,i) & vbTab & MDString(vRecs(1,i))) 
+	Next
+	Call DBCtrl.Close()
+	Set DBCtrl = Nothing
+
+]]>
+</script>
+</job>
+</package>
